@@ -26,8 +26,8 @@ Powered by [Tesseract.js](https://github.com/naptha/tesseract.js) and [PDF.js](h
 
 ---
 
-## Live Demo
-👉 not yet
+## Live Demo in Vercel
+👉 https://anita-ocr.vercel.app/
 
 ---
 
