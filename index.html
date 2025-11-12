@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bank Statement Analyzer - Visual Selection</title>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <!-- PDF.js for PDF rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+<link rel="stylesheet" href="/index.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- PASTE GOOGLE ADSENSE async script here (after you get your client id). Example: -->
+    <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=YOUR-ADSENSE-CLIENT" crossorigin="anonymous"></script> -->
+</head>
+<body>
+
+    <!-- ADS CONTAINERS: Banner (bottom) and Interstitial Modal -->
+    <div id="adBannerContainer" class="hidden">
+        <div id="adBannerInner" style="width:100%;max-width:970px;text-align:center;padding:8px;">
+            <!-- PASTE ADSENSE BANNER CODE HERE (responsive ad unit) -->
+        </div>
+    </div>
+
+    <div id="adInterstitialModal" aria-hidden="true">
+        <div id="adInterstitialContent">
+            <div id="adInterstitialInner" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+                <!-- PASTE ADSENSE/AD CODE HERE FOR INTERSTITIAL -->
+                <div style="text-align:center;color:#6b7280;"><strong>Ad Placeholder</strong><div style="margin-top:12px;">Your ad will appear here</div></div>
+            </div>
+            <div id="adInterstitialTimer">Cargando anuncio...</div>
+            <button id="adInterstitialClose" class="hidden" aria-label="Close ad">Cerrar</button>
+        </div>
+    </div>
+
+    <div class="offline-indicator" id="offlineIndicator">
+        Online - Libraries Cached
+    </div>
+
+    <div class="container">
+        <aside class="panel left-panel" id="leftPanel">
+            <div class="panel-toggle-btn" onclick="togglePanel('leftPanel')" title="Toggle Documents Panel">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </div>
+            <div class="panel-resize-handle" id="leftResizeHandle"></div>
+
+            <div class="panel-header">
+              <h2>Documents</h2>
+            </div>
+            
+            <button id="filesBtn" class="files-button" onclick="document.getElementById('fileInput').click()">
+                <svg style="width:20px;height:20px;margin-right:8px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <span>Files</span>
+            </button>
+            
+            <div class="upload-zone" id="uploadZone">
+                <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <p class="upload-text" id="uploadText">Select a file to upload</p>
+                <p class="upload-text" style="font-size: 0.75rem; color: #9ca3af" id="uploadSubtext">PDF, JPG, PNG SUPPORTED</p>
+                <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png" />
+            </div>
+            
+            <div id="alertContainer"></div>
+            
+            <div class="documents-list" id="documentsList">
+            </div>
+            
+            <button class="btn btn-secondary btn-full" onclick="clearAllFiles()" style="margin-top: 1rem;">Clear All Files</button>
+        </aside>
+
+        <main class="center-panel">
+            <div class="viewer-controls">
+                <button onclick="previousPage()" id="prevBtn">
+                    <svg style="width:16px;height:16px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    <span>Previous</span>
+                </button>
+                <button onclick="nextPage()" id="nextBtn">
+                    <span>Next</span>
+                    <svg style="width:16px;height:16px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+                <span class="page-info" id="pageInfo">No document</span>
+                
+                <div class="separator"></div>
+                
+                <button onclick="zoomOut()">
+                    <svg style="width:16px;height:16px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path>
+                    </svg>
+                </button>
+                <span class="zoom-info" id="zoomInfo">100%</span>
+                <button onclick="zoomIn()">
+                    <svg style="width:16px;height:16px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"></path>
+                    </svg>
+                </button>
+                <button onclick="resetZoom()">Reset</button>
+
+                <div class="separator"></div>
+
+                <button onclick="rotatePage(-90)" title="Rotate Left">
+                    <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l4-4m-4 4l4 4"></path></svg>
+                </button>
+                <button onclick="rotatePage(90)" title="Rotate Right">
+                    <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-4-4m4 4l-4 4"></path></svg>
+                </button>
+                
+                <button id="undoBtn" onclick="undo()" title="Undo" disabled>
+                    <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                </button>
+                <button id="redoBtn" onclick="redo()" title="Redo" disabled>
+                     <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+
+                <div class="separator"></div>
+                
+                <button id="panToolBtn" onclick="togglePanMode()" title="Pan/Move Tool (or hold Space)">
+                    <svg style="width:16px;height:16px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path>
+                    </svg>
+                    <span>Pan Tool</span>
+                </button>
+
+                <button id="dividerToolBtn" onclick="toggleDividerMode()" title="Add Horizontal Divider Tool">
+                    <svg style="width:16px;height:16px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"></path></svg>
+                    <span>Add Divider</span>
+                </button>
+
+                 <button id="gridToolBtn" onclick="toggleGridMode()" title="Grid Tool">
+                    <svg style="width:16px;height:16px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    <span>Grid Tool</span>
+                </button>
+
+                <div class="separator"></div>
+
+                <button onclick="clearSelections()">Clear Selections</button>
+                
+                <div class="separator"></div>
+                
+                <button id="batchToggleBtn" onclick="toggleBatchMode()" class="batch-toggle-btn disabled" title="Toggle Multi-Page Batch Processing">
+                    <svg style="width:16px;height:16px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                    </svg>
+                    <span id="batchToggleText">Batch Mode: OFF</span>
+                </button>
+            </div>
+            
+            <div class="canvas-container" id="canvasContainer">
+                <div class="empty-state" id="emptyState">
+                    <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div class="empty-text">No Document Loaded</div>
+                    <div class="empty-subtext">Upload a bank statement to get started. Click and drag to select regions for OCR, or use the Pan Tool to move around.</div>
+                </div>
+                
+                <div class="canvas-wrapper" id="canvasWrapper" style="display: none;">
+                    <canvas id="documentCanvas"></canvas>
+                    <canvas id="overlayCanvas" style="position: absolute; top: 0; left: 0;"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <aside class="panel right-panel" id="rightPanel">
+            <div class="panel-toggle-btn" onclick="togglePanel('rightPanel')" title="Toggle Results Panel">
+                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </div>
+            <div class="panel-resize-handle" id="rightResizeHandle"></div>
+
+            <div class="panel-header">
+                <h2>OCR Results</h2>
+                <button class="icon-btn" onclick="showOcrSettingsModal()" title="OCR Settings">
+                    <svg style="width:20px;height:20px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066 2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div id="toolInfoContainer">
+                <div id="toolStatusInfo" class="batch-info" style="display: none;"></div>
+                <div id="batchInfo" class="batch-info" style="display: none;">
+                    <div class="batch-info-title">Multi-Page Batch Processing</div>
+                    <div>Selections are preserved across all pages</div>
+                    <div class="batch-stats">
+                        <div class="batch-stat">
+                            <div class="batch-stat-value" id="totalSelections">0</div>
+                            <div class="batch-stat-label">Total Selections</div>
+                        </div>
+                        <div class="batch-stat">
+                            <div class="batch-stat-value" id="totalPages">0</div>
+                            <div class="batch-stat-label">Pages Used</div>
+                        </div>
+                        <div class="batch-stat">
+                            <div class="batch-stat-value" id="currentPageSelections">0</div>
+                            <div class="batch-stat-label">Current Page</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="resultsContainer" style="flex-grow: 1; overflow-y: auto;">
+                <div class="alert alert-info">
+                    Select regions on the document to extract text with OCR. Results will appear here.
+                </div>
+            </div>
+            
+            <button id="batchOcrBtn" class="batch-ocr-btn" onclick="processBatchSelections()" style="display: none;">
+                <svg style="width:16px;height:16px;margin-right:8px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span>OCR Text of Preserved Selections</span>
+            </button>
+            
+            <button id="gridOcrBtn" class="grid-ocr-btn" onclick="window.processGrid()" style="display: none;">
+                <svg style="width:16px;height:16px;margin-right:8px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                <span>Process Grid</span>
+            </button>
+            
+            <div style="display: flex; gap: 0.5rem; margin-top: auto; padding-top: 1rem;">
+                <button class="btn btn-primary btn-full" onclick="exportAllResults()" title="Export all OCR results as a JSON file">
+                     <svg style="width:16px;height:16px;margin-right:8px;display:inline-block;vertical-align:middle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Export All</span>
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- OCR Settings Modal -->
+    <div id="ocrSettingsModal" class="modal">
+        <div class="modal-content">
+            <nav class="settings-nav" id="settingsNav">
+                 <button class="settings-nav-btn active" data-target="view-preferences" onclick="showSettingsView('view-preferences', this)">Preferences</button>
+                 <button class="settings-nav-btn" data-target="view-cleaner" onclick="showSettingsView('view-cleaner', this)">Result Cleaner</button>
+                 <button class="settings-nav-btn" data-target="view-engine" onclick="showSettingsView('view-engine', this)">OCR Engine</button>
+            </nav>
+
+            <div class="modal-body">
+                <div class="modal-header">
+                     <button class="settings-back-btn" onclick="showSettingsView('main', this)">
+                        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        <span>Back</span>
+                    </button>
+                    <h3 class="modal-title" id="settingsModalTitle">Preferences</h3>
+                    <button class="modal-close" onclick="closeOcrSettingsModal()">
+                        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div id="settingsViewsContainer">
+                    <div id="view-preferences" class="settings-view active">
+                         <div class="form-group">
+                            <label class="form-label" for="themeSelector">Theme</label>
+                            <select id="themeSelector" class="form-input" onchange="handleThemeChange(this.value)">
+                                <option value="light">Light</option>
+                                <option value="dark-mode">Dark</option>
+                                <option value="winter-theme">Winter</option>
+                                <option value="burgundy-theme">Burgundy</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="languageSelector">Language</label>
+                            <select id="languageSelector" class="form-input" onchange="handleLanguageChange(this.value)">
+                                <option value="en">English</option>
+                                <option value="es">Español</option>
+                            </select>
+                        </div>
+                        <hr class="hr-divider" />
+                        <div class="form-group">
+                             <label class="form-label">Selection Behavior</label>
+                             <div class="checkbox-group">
+                                <input type="checkbox" id="keepSelections" style="margin-right: 8px;">
+                                <label for="keepSelections">Keep previous selection boxes on screen</label>
+                            </div>
+                            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">By default, drawing a new box clears the old one. Check this to keep all boxes visible.</p>
+                        </div>
+                    </div>
+                    
+                    <div id="view-cleaner" class="settings-view">
+                        <div class="form-group">
+                            <label class="form-label" for="ocrOnlyTagInput">OCR Only (Whitelist)</label>
+                             <div class="checkbox-group">
+                                <input type="checkbox" id="ocrOnlyEnabled" style="margin-right: 8px;">
+                                <label for="ocrOnlyEnabled">Enable OCR Only</label>
+                            </div>
+                            <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.5rem;">If enabled, OCR will only return text that matches an item on this list.</p>
+                            <div id="ocrOnlyTagsContainer" class="cleaner-tags-container"></div>
+                            <input type="text" id="ocrOnlyTagInput" class="form-input" placeholder="Add phrase and press Enter...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Word & Phrase Replacements</label>
+                             <div id="replacementRulesContainer" style="margin-bottom: 0.5rem;"></div>
+                            <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                                <input type="text" id="replacementFind" class="form-input" placeholder="Find Text">
+                                <span style="display: flex; align-items: center;">→</span>
+                                <input type="text" id="replacementReplace" class="form-input" placeholder="Replace With">
+                                <button id="addReplacementRuleBtn" class="btn btn-primary" style="flex-shrink: 0;">Add</button>
+                            </div>
+                        </div>
+            
+                        <div class="form-group">
+                            <label class="form-label" for="cleanerTagInput">Filter List (Remove Words/Phrases)</label>
+                            <div id="cleanerTagsContainer" class="cleaner-tags-container"></div>
+                            <input type="text" id="cleanerTagInput" class="form-input" placeholder="Add item and press Enter...">
+                        </div>
+            
+                        <div class="form-group">
+                            <label class="form-label" for="cleanerRemoveNumbers">Number Filtering</label>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="cleanerRemoveNumbers" style="margin-right: 8px;">
+                                <label for="cleanerRemoveNumbers">Remove numbers longer than</label>
+                                <input type="number" id="cleanerNumberThreshold" class="form-input" style="width: 70px; margin-left: 8px;" value="5" min="1">
+                                <label for="cleanerNumberThreshold" style="margin-left: 8px;">digits</label>
+                            </div>
+                        </div>
+                         <div class="modal-actions" style="justify-content: flex-start; padding-top: 1rem; border-top: 1px solid #e5e7eb; margin-top: 1rem;">
+                            <button type="button" class="btn btn-danger" onclick="resetCleanerSettings()">Reset Cleaner</button>
+                        </div>
+                    </div>
+                    
+                     <div id="view-engine" class="settings-view">
+                         <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem;">
+                            Provide a URL to your custom <code>.traineddata</code> file to improve accuracy on specific documents.
+                        </p>
+                        <div class="form-group">
+                            <label class="form-label" for="modalCustomLangUrl">Custom Language URL</label>
+                            <input type="text" id="modalCustomLangUrl" class="form-input" placeholder="URL to folder with .traineddata">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="modalCustomLangCode">Custom Language Code</label>
+                            <input type="text" id="modalCustomLangCode" class="form-input" placeholder="e.g., mybank (without extension)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem; width: 100%;">
+                    <button type="button" class="btn" onclick="closeOcrSettingsModal()" style="margin-right: auto;">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAndReloadSettings()">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div id="loadingText">Processing OCR...</div>
+        </div>
+    </div>
+
+    <!-- Save Grid Preset Modal -->
+    <div id="saveGridPresetModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-body">
+                <div class="modal-header">
+                    <h3 class="modal-title">Save Grid Preset</h3>
+                    <button class="modal-close" onclick="closeSaveGridPresetModal()">
+                        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="gridPresetName">Preset Name</label>
+                    <input type="text" id="gridPresetName" class="form-input" placeholder="e.g., transactions-table">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeSaveGridPresetModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveGridPreset()">Save Preset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Grid Preset Modal -->
+    <div id="importGridPresetModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-body">
+                <div class="modal-header">
+                    <h3 class="modal-title">Import Grid Preset</h3>
+                    <button class="modal-close" onclick="closeImportGridPresetModal()">
+                        <svg style="width:16px;height:16px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Preset File (.json)</label>
+                    <div class="upload-zone" id="presetUploadZone">
+                        <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <p class="upload-text">Drag & drop file or click to select</p>
+                        <input type="file" id="presetFileInput" accept=".json" style="display: none;">
+                    </div>
+                </div>
+                <div class="form-group">
+                     <div class="checkbox-group">
+                        <input type="checkbox" id="applyPresetToAllPages" style="margin-right: 8px;">
+                        <label for="applyPresetToAllPages">Apply this preset to ALL pages</label>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeImportGridPresetModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+<script type="module" src="/index.tsx"></script>
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
